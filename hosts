@@ -1,0 +1,6 @@
+[all]
+10.0.16.207
+10.0.6.47
+
+[all:vars]
+ansible_user=ubuntu
