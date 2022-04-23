@@ -1,0 +1,59 @@
+---
+# tasks file for exporter
+- name: create node exporter directory
+  file:
+    path: "/usr/local/bin/node_exporter"
+    state: directory
+
+- name: check if node exporter is already downloaded
+  stat:
+    path: "/usr/local/bin/node_exporter/node_exporter"
+  register: exporter_bin
+
+- name: download node exporter
+  get_url:
+    url='{{ node_exporter_url }}'
+    dest="/home/ubuntu/node_exporter.tar.gz"
+  when: exporter_bin.stat.exists == false
+
+- name: check if node exporter tar is locally available
+  stat:
+    path: "/home/ubuntu/node_exporter.tar.gz"
+  register: exporter_locally
+
+- name: unarchive node exporter tar
+  unarchive:
+    src: "/home/ubuntu/node_exporter.tar.gz"
+    dest: "/usr/local/bin/node_exporter"
+    remote_src: true
+    extra_opts: [--strip-components=1]
+  when: exporter_locally.stat.exists
+
+- name: delete node exporter tar
+  file:
+    state: absent
+    path: "/home/ubuntu/node_exporter.tar.gz"
+  when: exporter_locally.stat.exists
+
+- name: create node_exporter group
+  group:
+    name: node_exporter
+    state: present
+
+- name: create node_exporter user
+  user:
+    name: node_exporter
+    groups: node_exporter
+    expires: -1
+    state: present
+
+- name: upload node_exporter.service
+  template:
+    src: node_exporter.service.j2
+    dest: "/etc/systemd/system/node_exporter.service"
+
+- name: start the node_exporter service
+  systemd:
+    name: node_exporter
+    state: started
+    daemon_reload: yes
